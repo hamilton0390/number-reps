@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0f1117">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Number Reps">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>Number Reps</title>
+<style>
+:root{
+  --bg:#0f1117; --panel:#181c26; --panel2:#1f2432; --ink:#eef1f7; --muted:#8b93a7;
+  --accent:#4f8cff; --good:#2ecc8f; --bad:#ff5d73; --warn:#ffb84f;
+  --radius:16px;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0; height:100%;}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  overscroll-behavior:none; user-select:none; -webkit-user-select:none;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.screen{display:none; max-width:480px; margin:0 auto; padding:16px; min-height:100dvh; flex-direction:column;}
+.screen.active{display:flex;}
+
+/* ---------- Home ---------- */
+h1{font-size:28px; margin:12px 0 2px;}
+.tagline{color:var(--muted); margin:0 0 18px; font-size:14px;}
+.seg{display:flex; background:var(--panel); border-radius:12px; padding:4px; margin-bottom:18px;}
+.seg button{flex:1; border:0; background:transparent; color:var(--muted); padding:10px 0; border-radius:9px; font-size:15px; font-weight:600;}
+.seg button.on{background:var(--accent); color:#fff;}
+.modes{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.mode-card{
+  background:var(--panel); border:0; border-radius:var(--radius); padding:16px 14px;
+  color:var(--ink); text-align:left; display:flex; flex-direction:column; gap:6px; min-height:104px;
+}
+.mode-card:active{background:var(--panel2);}
+.mode-card .m-icon{font-size:22px;}
+.mode-card .m-name{font-weight:700; font-size:15px;}
+.mode-card .m-best{color:var(--muted); font-size:12px;}
+.mode-card.wide{grid-column:1 / -1; flex-direction:row; align-items:center; min-height:0;}
+.mode-card.wide .m-name{font-size:16px;}
+.mode-card.wide .m-best{margin-left:auto;}
+
+/* ---------- Stats ---------- */
+.review-note{color:var(--muted); font-size:13px; text-align:center; margin:14px 0 0; min-height:16px;}
+.skill-table{display:flex; flex-direction:column; gap:8px;}
+.skill-row{display:flex; align-items:center; background:var(--panel); border-radius:10px; padding:12px 14px; font-size:14px;}
+.skill-row .sname{font-weight:700; flex:1;}
+.skill-row .sv{color:var(--muted); margin-left:12px; font-variant-numeric:tabular-nums; min-width:44px; text-align:right;}
+.skill-row .sv.up{color:var(--good);}
+.skill-row .sv.down{color:var(--bad);}
+
+/* ---------- Game ---------- */
+.hud{display:flex; align-items:baseline; gap:14px; margin-bottom:6px;}
+.hud .time{font-size:26px; font-weight:800; font-variant-numeric:tabular-nums; min-width:52px;}
+.hud .score{margin-left:auto; font-size:18px; font-weight:700; font-variant-numeric:tabular-nums;}
+.hud .streak{color:var(--warn); font-size:14px; font-weight:700;}
+.tbar{height:6px; background:var(--panel); border-radius:3px; overflow:hidden; margin-bottom:10px;}
+.tbar div{height:100%; background:var(--accent); width:100%; border-radius:3px;}
+.qwrap{flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; min-height:150px;}
+.qhint{color:var(--muted); font-size:13px; margin-bottom:8px; min-height:16px;}
+.qtext{font-size:30px; font-weight:800; line-height:1.25; padding:0 4px;}
+.qtext.small{font-size:24px;}
+.feedback{min-height:26px; margin-top:10px; font-size:16px; font-weight:700;}
+.feedback.good{color:var(--good);}
+.feedback.bad{color:var(--bad);}
+.fbhow{min-height:20px; margin-top:4px; font-size:13px; color:var(--accent); line-height:1.4; padding:0 8px;}
+.hud .quit{background:transparent; border:0; color:var(--muted); font-size:18px; font-weight:700; padding:2px 6px; margin-left:4px;}
+
+.answer-area{margin-top:auto;}
+.mc{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.mc button{
+  background:var(--panel); border:2px solid transparent; border-radius:14px; color:var(--ink);
+  font-size:20px; font-weight:700; padding:20px 8px; font-variant-numeric:tabular-nums;
+}
+.mc button:active{background:var(--panel2);}
+.mc button.hit{border-color:var(--good); background:#12301f;}
+.mc button.miss{border-color:var(--bad); background:#331520;}
+.hl{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.hl button{border-radius:14px; border:0; font-size:22px; font-weight:800; padding:26px 8px; color:#fff;}
+.hl .above{background:#245a3f;}
+.hl .below{background:#5a2439;}
+.hl button:active{filter:brightness(1.2);}
+.skip{margin-top:10px; width:100%; background:transparent; border:0; color:var(--muted); font-size:14px; padding:10px; font-weight:600;}
+
+/* ---------- Results ---------- */
+.res-score{font-size:56px; font-weight:800; text-align:center; margin:24px 0 4px; font-variant-numeric:tabular-nums;}
+.res-label{text-align:center; color:var(--muted); margin-bottom:6px;}
+.res-best{text-align:center; color:var(--warn); font-weight:700; min-height:22px; margin-bottom:4px;}
+.res-note{text-align:center; color:var(--accent); font-size:14px; min-height:18px; margin-bottom:10px;}
+.res-stats{display:flex; gap:10px; margin-bottom:18px;}
+.stat{flex:1; background:var(--panel); border-radius:12px; padding:12px; text-align:center;}
+.stat .v{font-size:22px; font-weight:800;}
+.stat .k{font-size:12px; color:var(--muted);}
+.missed h3{font-size:14px; color:var(--muted); margin:0 0 8px;}
+.missed-list{display:flex; flex-direction:column; gap:8px; max-height:32dvh; overflow-y:auto;}
+.miss-item{background:var(--panel); border-radius:10px; padding:10px 12px; font-size:14px;}
+.miss-item .mq{font-weight:700;}
+.miss-item .ma{color:var(--muted); font-size:13px;}
+.miss-item .ma b{color:var(--good); font-weight:700;}
+.miss-item .mhow{color:var(--accent); font-size:13px; margin-top:4px; line-height:1.4;}
+.res-btns{margin-top:auto; display:flex; gap:10px; padding-top:16px;}
+.res-btns button{flex:1; border:0; border-radius:14px; padding:16px; font-size:17px; font-weight:700;}
+.btn-again{background:var(--accent); color:#fff;}
+.btn-home{background:var(--panel); color:var(--ink);}
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div class="screen active" id="home">
+  <h1>Number Reps</h1>
+  <p class="tagline">90-second mental math sprints</p>
+  <div class="seg" id="diffSeg">
+    <button data-d="0">Easy</button>
+    <button data-d="1" class="on">Standard</button>
+    <button data-d="2">Hard</button>
+  </div>
+  <div class="modes">
+    <button class="mode-card" data-mode="pct"><span class="m-icon">%</span><span class="m-name">Percentages</span><span class="m-best" id="best-pct">–</span></button>
+    <button class="mode-card" data-mode="div"><span class="m-icon">÷</span><span class="m-name">Division &amp; Ratios</span><span class="m-best" id="best-div">–</span></button>
+    <button class="mode-card" data-mode="est"><span class="m-icon">≈</span><span class="m-name">Estimation</span><span class="m-best" id="best-est">–</span></button>
+    <button class="mode-card" data-mode="drill"><span class="m-icon">×</span><span class="m-name">Speed Drills</span><span class="m-best" id="best-drill">–</span></button>
+    <button class="mode-card" data-mode="hl"><span class="m-icon">⇅</span><span class="m-name">Above or Below</span><span class="m-best" id="best-hl">–</span></button>
+    <button class="mode-card wide" data-mode="mix"><span class="m-icon">🎲</span><span class="m-name">Mixed Sprint</span><span class="m-best" id="best-mix">–</span></button>
+    <button class="mode-card wide" id="statsBtn"><span class="m-icon">📊</span><span class="m-name">Stats &amp; streak</span><span class="m-best" id="homeStreak"></span></button>
+  </div>
+  <p class="review-note" id="reviewNote"></p>
+</div>
+
+<!-- STATS -->
+<div class="screen" id="stats">
+  <h1>Stats</h1>
+  <div class="res-stats">
+    <div class="stat"><div class="v" id="sStreak">0</div><div class="k">day streak</div></div>
+    <div class="stat"><div class="v" id="sSprints">0</div><div class="k">total sprints</div></div>
+    <div class="stat"><div class="v" id="sToday">0</div><div class="k">today</div></div>
+  </div>
+  <div class="skill-table" id="skillTable"></div>
+  <p class="review-note" id="statsReview"></p>
+  <div class="res-btns">
+    <button class="btn-home" id="statsBack">Home</button>
+  </div>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="game">
+  <div class="hud">
+    <span class="time" id="timeLeft">90</span>
+    <span class="streak" id="streakLbl"></span>
+    <span class="score" id="scoreLbl">0</span>
+    <button class="quit" id="quitBtn" aria-label="End sprint">✕</button>
+  </div>
+  <div class="tbar"><div id="tfill"></div></div>
+  <div class="qwrap">
+    <div class="qhint" id="qhint"></div>
+    <div class="qtext" id="qtext"></div>
+    <div class="feedback" id="feedback"></div>
+    <div class="fbhow" id="fbHow"></div>
+  </div>
+  <div class="answer-area" id="answerArea"></div>
+  <button class="skip" id="skipBtn">skip →</button>
+</div>
+
+<!-- RESULTS -->
+<div class="screen" id="results">
+  <div class="res-score" id="resScore">0</div>
+  <div class="res-label" id="resMode"></div>
+  <div class="res-best" id="resBest"></div>
+  <div class="res-note" id="resNote"></div>
+  <div class="res-stats">
+    <div class="stat"><div class="v" id="stCorrect">0</div><div class="k">correct</div></div>
+    <div class="stat"><div class="v" id="stAcc">0%</div><div class="k">accuracy</div></div>
+    <div class="stat"><div class="v" id="stStreak">0</div><div class="k">best streak</div></div>
+  </div>
+  <div class="missed" id="missedWrap">
+    <h3>Review the ones you missed</h3>
+    <div class="missed-list" id="missedList"></div>
+  </div>
+  <div class="res-btns">
+    <button class="btn-home" id="btnHome">Home</button>
+    <button class="btn-again" id="btnAgain">Go again</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ---------------- utilities ---------------- */
+const $ = id => document.getElementById(id);
+const ri = (a,b) => a + Math.floor(Math.random()*(b-a+1));
+const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+const fmt = n => n.toLocaleString("en-US");
+const pctStr = x => String(x) + "%";
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function round2sig(x){
+  if(x===0) return 0;
+  const m = Math.pow(10, Math.floor(Math.log10(Math.abs(x))) - 1);
+  return Math.round(x/m)*m;
+}
+
+const ROUND_SECS = 90;
+const MODES = {
+  pct:  "Percentages",
+  div:  "Division & Ratios",
+  est:  "Estimation",
+  drill:"Speed Drills",
+  hl:   "Above or Below",
+  mix:  "Mixed Sprint",
+};
+
+let difficulty = parseInt(localStorage.getItem("nr:diff") || "1", 10);
+
+/* ---------------- question generators ----------------
+   Each returns: { kind:'mc'|'hl', text, hint, answer?, options? }
+   mc: options = [{label, correct}] (4, shuffled).
+   hl: answer is 'above' or 'below'.
+*/
+function mcFromValues(correct, distractors, labelFn){
+  const seen = new Set();
+  const opts = [];
+  for(const v of [correct, ...distractors]){
+    const label = labelFn(v);
+    if(seen.has(label)) continue;
+    seen.add(label);
+    opts.push({ label, correct: v === correct });
+  }
+  return shuffle(opts);
+}
+
+/* Build 4 options for an integer answer from plausible-mistake candidates,
+   topping up with relative offsets if candidates collide. */
+function mcInt(ans, cands, labelFn){
+  const set = [];
+  for(const c of cands){
+    const v = Math.round(c);
+    if(v > 0 && v !== ans && !set.includes(v)) set.push(v);
+    if(set.length === 3) break;
+  }
+  const step = Math.max(1, Math.round(Math.abs(ans)*0.08));
+  let k = 1;
+  while(set.length < 3){
+    for(const v of [ans + k*step, ans - k*step]){
+      if(set.length < 3 && v > 0 && v !== ans && !set.includes(v)) set.push(v);
+    }
+    k++;
+  }
+  return mcFromValues(ans, set, labelFn || fmt);
+}
+
+function genPct(d){
+  if(Math.random() < 0.7){
+    let X, N;
+    if(d===0){ X = pick([5,10,20,25,50]); N = ri(1,20)*1000; }
+    else if(d===1){ X = ri(1,12); N = ri(1,40)*10000; }
+    else { X = pick([0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,ri(1,12)]); N = ri(2,40)*20000; }
+    const ans = Math.round(X*N/100);
+    const cands = shuffle([ Math.round((X+1)*N/100), Math.round(Math.max(0.5, X-1)*N/100),
+                            ans*10, Math.round(ans/10) ]);
+    const one = N/100;
+    const how = X < 1   ? `1% is ${fmt(one)} → half = ${fmt(ans)}`
+              : X % 1   ? `1% is ${fmt(one)} → ×${Math.floor(X)} = ${fmt(one*Math.floor(X))}, plus half of ${fmt(one)} = ${fmt(ans)}`
+              : X === 1 ? `1% = drop two zeros: ${fmt(ans)}`
+              : `1% is ${fmt(one)} → ×${X} = ${fmt(ans)}`;
+    return { kind:"mc", hint:"pick one", text:`${pctStr(X)} of ${fmt(N)}`, options: mcInt(ans, cands), how };
+  }
+  const p = d===0 ? pick([10,20,25,50]) : ri(5,60);
+  const M = (d===2 ? ri(20,90) : ri(2,20)) * 1000;
+  const N = Math.round(M*p/100);
+  return { kind:"mc", hint:"pick one", text:`${fmt(N)} is what % of ${fmt(M)}?`,
+           options: mcInt(p, shuffle([p-8,p-5,p-3,p+3,p+5,p+8]), v => v + "%"),
+           how: `1% of ${fmt(M)} is ${fmt(M/100)} → ${fmt(N)} ÷ ${fmt(M/100)} = ${p}%` };
+}
+
+function divHow(dv, q){
+  const tens = Math.floor(q/10)*10;
+  if(tens === 0) return `${dv} × ${q} = ${fmt(dv*q)}`;
+  return `${dv} × ${tens} = ${fmt(dv*tens)}, remainder ${fmt(dv*(q-tens))} ÷ ${dv} = ${q-tens} → ${q}`;
+}
+
+function genDiv(d){
+  const t = Math.random();
+  if(t < 0.4){
+    const m = (d===0 ? ri(4,40) : d===1 ? ri(8,80) : ri(20,140)) * 100 + (d===2 ? pick([0,25,50,75]) : 0);
+    return { kind:"mc", hint:"annual → monthly", text:`${fmt(m*12)} ÷ 12`,
+             options: mcInt(m, shuffle([m+100, m-100, m+200, m-200, m*10])),
+             how: `÷12 = ÷4 then ÷3: ${fmt(m*12)} ÷ 4 = ${fmt(m*3)} → ÷3 = ${fmt(m)}` };
+  }
+  if(t < 0.7){
+    const B = ri(40,150)*100;
+    const p = ri(15,55);
+    const A = B*p/100;
+    return { kind:"mc", hint:"pick one", text:`${fmt(A)} ÷ ${fmt(B)} as a percent?`,
+             options: mcInt(p, shuffle([p-9,p-6,p-4,p+4,p+6,p+9]), v => v + "%"),
+             how: `1% of ${fmt(B)} is ${fmt(B/100)} → ${fmt(A)} ÷ ${fmt(B/100)} = ${p}%` };
+  }
+  const dv = ri(3,12);
+  const q = d===0 ? ri(6,20) : d===1 ? ri(12,99) : ri(25,240);
+  return { kind:"mc", hint:"pick one", text:`${fmt(q*dv)} ÷ ${dv}`,
+           options: mcInt(q, shuffle([q+1, q-1, q+2, q-2, q+10, q-10])), how: divHow(dv, q) };
+}
+
+function genEst(d){
+  let exact, text, approx;
+  if(Math.random() < 0.6){
+    const N = ri(d===0?40:80, d===2?950:600)*1000 + ri(0,999);
+    const r = ri(3,12) + (d===2 ? pick([0,0.25,0.5,0.75]) : 0);
+    exact = N*r/100;
+    text = `${pctStr(r)} of ${fmt(N)}`;
+    approx = `round: ~${fmt(round2sig(N))} × ${pctStr(r)}`;
+  } else {
+    const N = ri(60,900)*1000 + ri(0,999);
+    const dsr = pick([12, 24, 26, 52]);
+    exact = N/dsr;
+    text = `${fmt(N)} ÷ ${dsr}`;
+    approx = `round: ~${fmt(round2sig(N))} ÷ ${dsr}`;
+  }
+  const ans = round2sig(exact);
+  const dst = shuffle([ round2sig(exact*pick([0.55,0.65])),
+                        round2sig(exact*pick([1.4,1.6])),
+                        round2sig(exact*pick([0.1,10])),
+                        round2sig(exact*1.25), round2sig(exact*0.8) ]);
+  return { kind:"mc", hint:"≈ pick the closest", text, options: mcInt(ans, dst),
+           how: `${approx} ≈ ${fmt(ans)}` };
+}
+
+function genDrill(d){
+  if(Math.random() < 0.5){
+    let a,b;
+    if(d===0){ a=ri(3,12); b=ri(3,12); }
+    else if(d===1){ a=ri(12,99); b=ri(3,9); }
+    else { a=ri(12,29); b=ri(12,19); }
+    const ans = a*b;
+    const tens = Math.floor(a/10)*10;
+    const how = d===0 ? `times tables: ${a} × ${b} = ${ans}`
+              : d===1 ? `split it: ${tens} × ${b} = ${tens*b}, ${a-tens} × ${b} = ${(a-tens)*b} → ${fmt(ans)}`
+              : `split it: ${a} × 10 = ${a*10}, ${a} × ${b-10} = ${a*(b-10)} → ${fmt(ans)}`;
+    return { kind:"mc", hint:"pick one", text:`${a} × ${b}`,
+             options: mcInt(ans, shuffle([(a+1)*b, (a-1)*b, a*(b+1), a*(b-1), ans+10, ans-10])), how };
+  }
+  const dv = ri(3,12);
+  const q = d===0 ? ri(3,12) : d===1 ? ri(12,99) : ri(25,199);
+  return { kind:"mc", hint:"pick one", text:`${fmt(q*dv)} ÷ ${dv}`,
+           options: mcInt(q, shuffle([q+1, q-1, q+2, q-2, q+10, q-10])), how: divHow(dv, q) };
+}
+
+function genHL(d){
+  if(Math.random() < 0.6){
+    const B = ri(40,160)*100;
+    const A = ri(Math.round(B*0.15), Math.round(B*0.6));
+    const r = A/B*100;
+    const margin = d===2 ? pick([1.5,2,3]) : pick([3,4,5,7]);
+    const off = margin * (Math.random() < 0.5 ? -1 : 1);
+    let X = Math.round(r + off);
+    if(Math.abs(r - X) < 0.8) X += (off > 0 ? 1 : -1);
+    X = Math.max(5, Math.min(70, X));
+    return { kind:"hl", hint:"snap judgment", text:`${fmt(A)} ÷ ${fmt(B)} — above or below ${X}%?`,
+             answer: r > X ? "above" : "below",
+             how: `10% of ${fmt(B)} is ${fmt(B/10)} → ${X}% ≈ ${fmt(Math.round(B*X/100))}, and ${fmt(A)} is ${r > X ? "more" : "less"}` };
+  }
+  const X = ri(3,12);
+  const N = ri(5,80)*10000;
+  const truth = X*N/100;
+  const mult = d===2 ? pick([0.9,0.94,1.06,1.1]) : pick([0.8,0.87,1.15,1.25]);
+  let T = round2sig(truth*mult);
+  if(T === truth) T = Math.round(truth*mult);
+  return { kind:"hl", hint:"snap judgment", text:`${X}% of ${fmt(N)} — above or below ${fmt(T)}?`,
+           answer: truth > T ? "above" : "below",
+           how: `1% of ${fmt(N)} is ${fmt(N/100)} → ${X}% = ${fmt(truth)}, vs ${fmt(T)}` };
+}
+
+const GENS = { pct:genPct, div:genDiv, est:genEst, drill:genDrill, hl:genHL };
+function genQuestion(mode, d){
+  const m = mode === "mix" ? pick(Object.keys(GENS)) : mode;
+  const q = GENS[m](d);
+  q.mode = m;
+  return q;
+}
+
+/* ---------------- miss queue ----------------
+   Missed questions persist and reappear in later sprints
+   until answered correctly twice. */
+function loadMissQ(){
+  try { return JSON.parse(localStorage.getItem("nr:missq") || "[]"); }
+  catch(e){ return []; }
+}
+function saveMissQ(list){ localStorage.setItem("nr:missq", JSON.stringify(list.slice(0,30))); }
+function queueMiss(q){
+  const list = loadMissQ();
+  const i = list.findIndex(e => e.q.text === q.text);
+  if(i >= 0) list[i].need = 2;
+  else list.push({ q: { kind:q.kind, mode:q.mode, text:q.text, hint:q.hint,
+                        options:q.options, answer:q.answer, how:q.how }, need: 2 });
+  saveMissQ(list);
+}
+function clearMissProgress(q, ok){
+  const list = loadMissQ();
+  const i = list.findIndex(e => e.q.text === q.text);
+  if(i < 0) return;
+  if(ok){ list[i].need--; if(list[i].need <= 0) list.splice(i,1); }
+  else list[i].need = 2;
+  saveMissQ(list);
+}
+function pickReview(){
+  if(Math.random() > 0.3) return null;
+  const list = loadMissQ();
+  const e = list.find(e => (G.mode === "mix" || e.q.mode === G.mode) && !G.served.has(e.q.text));
+  if(!e) return null;
+  G.served.add(e.q.text);
+  const q = Object.assign({}, e.q, { review: true });
+  if(q.options) q.options = shuffle(q.options.slice());
+  return q;
+}
+
+/* ---------------- stats ----------------
+   Per-day, per-skill aggregates: nr:stats = { "2026-08-07": { sprints, m: { pct: {n, ok, ms} } } } */
+function loadStats(){
+  try { return JSON.parse(localStorage.getItem("nr:stats") || "{}"); }
+  catch(e){ return {}; }
+}
+function saveStats(s){ localStorage.setItem("nr:stats", JSON.stringify(s)); }
+function dayKey(offset){
+  const d = new Date();
+  d.setDate(d.getDate() - (offset || 0));
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+function recordAnswer(mode, ok, ms){
+  const s = loadStats();
+  const k = dayKey();
+  s[k] = s[k] || { sprints:0, m:{} };
+  const m = s[k].m[mode] = s[k].m[mode] || { n:0, ok:0, ms:0 };
+  m.n++; if(ok) m.ok++; m.ms += ms;
+  saveStats(s);
+}
+function recordSprint(){
+  const s = loadStats();
+  const k = dayKey();
+  s[k] = s[k] || { sprints:0, m:{} };
+  s[k].sprints++;
+  saveStats(s);
+}
+
+function dayStreak(s){
+  let streak = 0;
+  const today = s[dayKey(0)];
+  let i = (today && today.sprints > 0) ? 0 : 1;
+  for(; i < 3650; i++){
+    const d = s[dayKey(i)];
+    if(d && d.sprints > 0) streak++;
+    else break;
+  }
+  return streak;
+}
+
+function renderStats(){
+  const s = loadStats();
+  let totalSprints = 0;
+  for(const k of Object.keys(s)) totalSprints += s[k].sprints || 0;
+  $("sStreak").textContent = dayStreak(s) ? "🔥 " + dayStreak(s) : "0";
+  $("sSprints").textContent = fmt(totalSprints);
+  $("sToday").textContent = (s[dayKey(0)] && s[dayKey(0)].sprints) || 0;
+
+  const table = $("skillTable");
+  table.innerHTML = "";
+  for(const mode of Object.keys(GENS)){
+    let n=0, ok=0, ms=0, rn=0, rms=0, pn=0, pms=0;
+    for(const k of Object.keys(s)){
+      const m = s[k].m && s[k].m[mode];
+      if(!m) continue;
+      n += m.n; ok += m.ok; ms += m.ms;
+      // recent = last 3 days, prior = everything before
+      const recent = [dayKey(0), dayKey(1), dayKey(2)].includes(k);
+      if(recent){ rn += m.n; rms += m.ms; }
+      else { pn += m.n; pms += m.ms; }
+    }
+    const row = document.createElement("div");
+    row.className = "skill-row";
+    let trend = "", cls = "";
+    if(rn >= 5 && pn >= 5){
+      const ra = rms/rn, pa = pms/pn;
+      if(ra < pa*0.95){ trend = "▲ faster"; cls = "up"; }
+      else if(ra > pa*1.05){ trend = "▼ slower"; cls = "down"; }
+      else trend = "steady";
+    }
+    row.innerHTML = `<span class="sname"></span><span class="sv acc"></span><span class="sv spd"></span><span class="sv tr ${cls}"></span>`;
+    row.querySelector(".sname").textContent = MODES[mode];
+    row.querySelector(".acc").textContent = n ? Math.round(ok/n*100) + "%" : "—";
+    row.querySelector(".spd").textContent = n ? (ms/n/1000).toFixed(1) + "s" : "";
+    row.querySelector(".tr").textContent = trend;
+    table.appendChild(row);
+  }
+  const q = loadMissQ().length;
+  $("statsReview").textContent = q ? `${q} missed question${q>1?"s":""} queued for review` : "";
+}
+
+/* ---------------- game state ---------------- */
+let G = null;
+
+function bestKey(mode){ return `nr:best:${mode}:${difficulty}`; }
+function getBest(mode){ return parseInt(localStorage.getItem(bestKey(mode)) || "0", 10); }
+
+function show(id){
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  $(id).classList.add("active");
+}
+
+function refreshHome(){
+  for(const m of Object.keys(MODES)){
+    const b = getBest(m);
+    $("best-"+m).textContent = b ? `best ${fmt(b)}` : "no runs yet";
+  }
+  document.querySelectorAll("#diffSeg button").forEach(btn =>
+    btn.classList.toggle("on", parseInt(btn.dataset.d,10) === difficulty));
+  const streak = dayStreak(loadStats());
+  $("homeStreak").textContent = streak ? `🔥 ${streak} day${streak>1?"s":""}` : "";
+  const q = loadMissQ().length;
+  $("reviewNote").textContent = q ? `🔁 ${q} missed question${q>1?"s":""} will resurface in your sprints` : "";
+}
+
+function startGame(mode){
+  if(G && G.timer) clearInterval(G.timer);
+  G = { mode, score:0, correct:0, total:0, streak:0, bestStreak:0, served:new Set(),
+        missed:[], endAt: Date.now() + ROUND_SECS*1000, locked:false, q:null };
+  show("game");
+  $("scoreLbl").textContent = "0";
+  $("streakLbl").textContent = "";
+  G.timer = setInterval(tick, 100);
+  if(navigator.wakeLock) navigator.wakeLock.request("screen").then(w => { G.wake = w; }).catch(() => {});
+  nextQuestion();
+}
+
+function releaseWake(){
+  if(G && G.wake){ G.wake.release().catch(() => {}); G.wake = null; }
+}
+
+function tick(){
+  if(!G || !G.timer) return;
+  const ms = G.endAt - Date.now();
+  if(ms <= 0){ endGame(); return; }
+  $("timeLeft").textContent = Math.ceil(ms/1000);
+  $("tfill").style.width = (ms / (ROUND_SECS*1000) * 100) + "%";
+  $("tfill").style.background = ms < 10000 ? "var(--bad)" : "var(--accent)";
+}
+
+function nextQuestion(){
+  G.locked = false;
+  G.q = pickReview() || genQuestion(G.mode, difficulty);
+  G.qStart = Date.now();
+  $("qhint").textContent = (G.q.review ? "🔁 review · " : "") + (G.q.hint || "");
+  const qt = $("qtext");
+  qt.textContent = G.q.text;
+  qt.classList.toggle("small", G.q.text.length > 26);
+  $("feedback").textContent = "";
+  $("feedback").className = "feedback";
+  $("fbHow").textContent = "";
+  renderAnswerArea();
+}
+
+function renderAnswerArea(){
+  const area = $("answerArea");
+  area.innerHTML = "";
+  const q = G.q;
+  if(q.kind === "mc"){
+    const mc = document.createElement("div");
+    mc.className = "mc";
+    q.options.forEach((o,i) => {
+      const b = document.createElement("button");
+      b.textContent = o.label;
+      b.addEventListener("pointerdown", e => { e.preventDefault(); answerMC(i, b); });
+      mc.appendChild(b);
+    });
+    area.appendChild(mc);
+  } else {
+    const hl = document.createElement("div");
+    hl.className = "hl";
+    const up = document.createElement("button");
+    up.className = "above"; up.textContent = "▲ Above";
+    up.addEventListener("pointerdown", e => { e.preventDefault(); answerHL("above"); });
+    const dn = document.createElement("button");
+    dn.className = "below"; dn.textContent = "▼ Below";
+    dn.addEventListener("pointerdown", e => { e.preventDefault(); answerHL("below"); });
+    hl.appendChild(up); hl.appendChild(dn);
+    area.appendChild(hl);
+  }
+}
+
+function answerMC(i, btn){
+  if(G.locked) return;
+  const o = G.q.options[i];
+  if(!o.correct){
+    btn.classList.add("miss");
+    const hit = [...document.querySelectorAll(".mc button")][G.q.options.findIndex(x => x.correct)];
+    if(hit) hit.classList.add("hit");
+  } else {
+    btn.classList.add("hit");
+  }
+  const correctLabel = G.q.options.find(x => x.correct).label;
+  grade(o.correct, o.label, correctLabel);
+}
+
+function answerHL(dir){
+  if(G.locked) return;
+  grade(dir === G.q.answer, dir, G.q.answer);
+}
+
+function grade(ok, given, correctLabel){
+  if(G.locked) return;
+  G.locked = true;
+  G.total++;
+  const ms = Date.now() - G.qStart;
+  recordAnswer(G.q.mode, ok, ms);
+  const fb = $("feedback");
+  if(ok){
+    // credit the miss queue: served reviews, and natural re-asks not missed this sprint
+    if(G.q.review || !G.served.has(G.q.text)) clearMissProgress(G.q, true);
+    G.streak++;
+    G.bestStreak = Math.max(G.bestStreak, G.streak);
+    G.correct++;
+    const base = G.q.kind === "hl" ? 60 : 100;
+    const maxSpeed = G.q.kind === "hl" ? 30 : 50;
+    const speed = Math.round(maxSpeed * Math.max(0, 1 - Math.max(0, ms/1000 - 2)/8));
+    const bonus = Math.min(G.streak-1, 10) * (G.q.kind === "hl" ? 5 : 10);
+    G.score += base + speed + bonus;
+    fb.textContent = `+${base+speed+bonus}` + (speed >= maxSpeed*0.8 ? " ⚡" : "")
+                   + (bonus ? ` (streak ×${G.streak})` : "");
+    fb.classList.add("good");
+  } else {
+    G.streak = 0;
+    queueMiss(G.q);
+    G.served.add(G.q.text); // don't re-serve as review until a later sprint
+    fb.textContent = `answer: ${correctLabel}`;
+    fb.classList.add("bad");
+    if(G.q.how) $("fbHow").textContent = "💡 " + G.q.how;
+    G.missed.push({ text: G.q.text, given, correct: correctLabel, how: G.q.how });
+  }
+  $("scoreLbl").textContent = fmt(G.score);
+  $("streakLbl").textContent = G.streak >= 3 ? `🔥 ${G.streak}` : "";
+  const g = G; // guard against a stale timeout firing into a newer game
+  setTimeout(() => { if(G === g && G.timer) nextQuestion(); }, ok ? 350 : 2600);
+}
+
+$("skipBtn").addEventListener("click", () => {
+  if(!G || G.locked) return;
+  G.streak = 0;
+  $("streakLbl").textContent = "";
+  const correctLabel = G.q.kind === "mc" ? G.q.options.find(x => x.correct).label : G.q.answer;
+  recordAnswer(G.q.mode, false, Date.now() - G.qStart);
+  queueMiss(G.q);
+  G.served.add(G.q.text);
+  G.missed.push({ text: G.q.text, given: "skipped", correct: correctLabel, how: G.q.how });
+  nextQuestion();
+});
+
+$("quitBtn").addEventListener("click", () => {
+  if(!G) return;
+  clearInterval(G.timer);
+  G.timer = null;
+  releaseWake();
+  refreshHome();
+  show("home");
+});
+
+function endGame(){
+  clearInterval(G.timer);
+  G.timer = null;
+  releaseWake();
+  recordSprint();
+  const prev = getBest(G.mode);
+  const isBest = G.score > prev;
+  if(isBest) localStorage.setItem(bestKey(G.mode), String(G.score));
+  $("resScore").textContent = fmt(G.score);
+  $("resMode").textContent = `${MODES[G.mode]} · ${["Easy","Standard","Hard"][difficulty]}`;
+  $("resBest").textContent = isBest ? "🏆 New best!" : (prev ? `Best: ${fmt(prev)}` : "");
+  // adaptive difficulty: aim for ~85% accuracy (runs after best-score save so the key matches this sprint)
+  let note = "";
+  if(G.total >= 8){
+    const acc = G.correct / G.total;
+    const names = ["Easy","Standard","Hard"];
+    if(acc >= 0.88 && difficulty < 2){
+      difficulty++;
+      note = `${Math.round(acc*100)}% accuracy — next sprint moves up to ${names[difficulty]}`;
+    } else if(acc < 0.70 && difficulty > 0){
+      difficulty--;
+      note = `${Math.round(acc*100)}% accuracy — easing back to ${names[difficulty]}`;
+    }
+    if(note) localStorage.setItem("nr:diff", String(difficulty));
+  }
+  $("resNote").textContent = note;
+  $("stCorrect").textContent = `${G.correct}/${G.total}`;
+  $("stAcc").textContent = G.total ? Math.round(G.correct/G.total*100) + "%" : "–";
+  $("stStreak").textContent = G.bestStreak;
+  const wrap = $("missedWrap"), list = $("missedList");
+  list.innerHTML = "";
+  wrap.style.display = G.missed.length ? "" : "none";
+  for(const m of G.missed){
+    const el = document.createElement("div");
+    el.className = "miss-item";
+    el.innerHTML = `<div class="mq"></div><div class="ma"></div><div class="mhow"></div>`;
+    el.querySelector(".mq").textContent = m.text;
+    el.querySelector(".ma").innerHTML = `you: ${m.given} &nbsp;→&nbsp; <b></b>`;
+    el.querySelector("b").textContent = m.correct;
+    el.querySelector(".mhow").textContent = m.how ? "💡 " + m.how : "";
+    list.appendChild(el);
+  }
+  show("results");
+}
+
+/* ---------------- wiring ---------------- */
+document.querySelectorAll(".mode-card[data-mode]").forEach(c =>
+  c.addEventListener("click", () => startGame(c.dataset.mode)));
+document.querySelectorAll("#diffSeg button").forEach(b =>
+  b.addEventListener("click", () => {
+    difficulty = parseInt(b.dataset.d, 10);
+    localStorage.setItem("nr:diff", String(difficulty));
+    refreshHome();
+  }));
+$("btnHome").addEventListener("click", () => { refreshHome(); show("home"); });
+$("btnAgain").addEventListener("click", () => startGame(G.mode));
+$("statsBtn").addEventListener("click", () => { renderStats(); show("stats"); });
+$("statsBack").addEventListener("click", () => { refreshHome(); show("home"); });
+
+// physical keyboard support (nice on desktop testing)
+document.addEventListener("keydown", e => {
+  if(!G || !$("game").classList.contains("active") || !G.q) return;
+  if(G.q.kind === "hl"){
+    if(e.key === "ArrowUp") answerHL("above");
+    else if(e.key === "ArrowDown") answerHL("below");
+  } else if(G.q.kind === "mc" && /^[1-4]$/.test(e.key)){
+    const btns = document.querySelectorAll(".mc button");
+    const i = parseInt(e.key,10)-1;
+    if(btns[i]) answerMC(i, btns[i]);
+  }
+});
+
+refreshHome();
+if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+</script>
+</body>
+</html>
