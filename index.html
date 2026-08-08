@@ -75,6 +75,19 @@ h1{font-size:28px; margin:12px 0 2px;}
 .hud .quit{background:transparent; border:0; color:var(--muted); font-size:18px; font-weight:700; padding:2px 6px; margin-left:4px;}
 
 .answer-area{margin-top:auto;}
+.typed-display{
+  background:var(--panel); border-radius:12px; text-align:center; font-size:26px; font-weight:800;
+  padding:10px; margin-bottom:8px; min-height:50px; font-variant-numeric:tabular-nums;
+}
+.typed-display .cursor{color:var(--accent);}
+.pad{display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
+.pad button{
+  background:var(--panel); border:0; border-radius:12px; color:var(--ink);
+  font-size:22px; font-weight:700; padding:12px 0;
+}
+.pad button:active{background:var(--panel2);}
+.pad .go{background:var(--good); color:#06281b;}
+.pad .del{color:var(--muted);}
 .mc{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
 .mc button{
   background:var(--panel); border:2px solid transparent; border-radius:14px; color:var(--ink);
@@ -89,6 +102,19 @@ h1{font-size:28px; margin:12px 0 2px;}
 .hl .below{background:#5a2439;}
 .hl button:active{filter:brightness(1.2);}
 .skip{margin-top:10px; width:100%; background:transparent; border:0; color:var(--muted); font-size:14px; padding:10px; font-weight:600;}
+
+/* ---------- Technique of the day ---------- */
+.tech-card{background:var(--panel); border-radius:16px; padding:22px 20px; margin-top:48px;}
+.tech-tag{color:var(--accent); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;}
+.tech-card h2{margin:0 0 10px; font-size:22px;}
+.tech-card p{margin:0; color:var(--muted); font-size:15px; line-height:1.6;}
+.tech-back{margin-top:14px; width:100%; background:transparent; border:0; color:var(--muted); font-size:14px; padding:10px; font-weight:600;}
+
+/* ---------- Weak spots ---------- */
+.weak-title{font-size:14px; color:var(--muted); margin:18px 0 8px;}
+.weak-row{display:flex; align-items:center; background:var(--panel); border-radius:10px; padding:10px 14px; font-size:14px; margin-bottom:8px; border-left:3px solid var(--warn);}
+.weak-row .wname{font-weight:700; flex:1;}
+.weak-row .wv{color:var(--muted); margin-left:12px; font-variant-numeric:tabular-nums;}
 
 /* ---------- Results ---------- */
 .res-score{font-size:56px; font-weight:800; text-align:center; margin:24px 0 4px; font-variant-numeric:tabular-nums;}
@@ -144,10 +170,27 @@ h1{font-size:28px; margin:12px 0 2px;}
     <div class="stat"><div class="v" id="sToday">0</div><div class="k">today</div></div>
   </div>
   <div class="skill-table" id="skillTable"></div>
+  <div id="weakWrap">
+    <div class="weak-title">Weak spots — worth a focused sprint</div>
+    <div id="weakList"></div>
+  </div>
   <p class="review-note" id="statsReview"></p>
   <div class="res-btns">
     <button class="btn-home" id="statsBack">Home</button>
   </div>
+</div>
+
+<!-- TECHNIQUE OF THE DAY -->
+<div class="screen" id="tech">
+  <div class="tech-card">
+    <div class="tech-tag">technique of the day</div>
+    <h2 id="techTitle"></h2>
+    <p id="techBody"></p>
+  </div>
+  <div class="res-btns" style="margin-top:24px;">
+    <button class="btn-again" id="techStart">Start sprint</button>
+  </div>
+  <button class="tech-back" id="techBack">back</button>
 </div>
 
 <!-- GAME -->
@@ -268,12 +311,14 @@ function genPct(d){
               : X % 1   ? `1% is ${fmt(one)} → ×${Math.floor(X)} = ${fmt(one*Math.floor(X))}, plus half of ${fmt(one)} = ${fmt(ans)}`
               : X === 1 ? `1% = drop two zeros: ${fmt(ans)}`
               : `1% is ${fmt(one)} → ×${X} = ${fmt(ans)}`;
-    return { kind:"mc", hint:"pick one", text:`${pctStr(X)} of ${fmt(N)}`, options: mcInt(ans, cands), how };
+    return { kind:"mc", tpl:"pctOf", answer:ans, unit:"", hint:"pick one",
+             text:`${pctStr(X)} of ${fmt(N)}`, options: mcInt(ans, cands), how };
   }
   const p = d===0 ? pick([10,20,25,50]) : ri(5,60);
   const M = (d===2 ? ri(20,90) : ri(2,20)) * 1000;
   const N = Math.round(M*p/100);
-  return { kind:"mc", hint:"pick one", text:`${fmt(N)} is what % of ${fmt(M)}?`,
+  return { kind:"mc", tpl:"pctWhat", answer:p, unit:"%", hint:"pick one",
+           text:`${fmt(N)} is what % of ${fmt(M)}?`,
            options: mcInt(p, shuffle([p-8,p-5,p-3,p+3,p+5,p+8]), v => v + "%"),
            how: `1% of ${fmt(M)} is ${fmt(M/100)} → ${fmt(N)} ÷ ${fmt(M/100)} = ${p}%` };
 }
@@ -288,7 +333,7 @@ function genDiv(d){
   const t = Math.random();
   if(t < 0.4){
     const m = (d===0 ? ri(4,40) : d===1 ? ri(8,80) : ri(20,140)) * 100 + (d===2 ? pick([0,25,50,75]) : 0);
-    return { kind:"mc", hint:"annual → monthly", text:`${fmt(m*12)} ÷ 12`,
+    return { kind:"mc", tpl:"div12", answer:m, unit:"", hint:"annual → monthly", text:`${fmt(m*12)} ÷ 12`,
              options: mcInt(m, shuffle([m+100, m-100, m+200, m-200, m*10])),
              how: `÷12 = ÷4 then ÷3: ${fmt(m*12)} ÷ 4 = ${fmt(m*3)} → ÷3 = ${fmt(m)}` };
   }
@@ -296,37 +341,40 @@ function genDiv(d){
     const B = ri(40,150)*100;
     const p = ri(15,55);
     const A = B*p/100;
-    return { kind:"mc", hint:"pick one", text:`${fmt(A)} ÷ ${fmt(B)} as a percent?`,
+    return { kind:"mc", tpl:"ratioPct", answer:p, unit:"%", hint:"pick one",
+             text:`${fmt(A)} ÷ ${fmt(B)} as a percent?`,
              options: mcInt(p, shuffle([p-9,p-6,p-4,p+4,p+6,p+9]), v => v + "%"),
              how: `1% of ${fmt(B)} is ${fmt(B/100)} → ${fmt(A)} ÷ ${fmt(B/100)} = ${p}%` };
   }
   const dv = ri(3,12);
   const q = d===0 ? ri(6,20) : d===1 ? ri(12,99) : ri(25,240);
-  return { kind:"mc", hint:"pick one", text:`${fmt(q*dv)} ÷ ${dv}`,
+  return { kind:"mc", tpl:"divExact", answer:q, unit:"", hint:"pick one", text:`${fmt(q*dv)} ÷ ${dv}`,
            options: mcInt(q, shuffle([q+1, q-1, q+2, q-2, q+10, q-10])), how: divHow(dv, q) };
 }
 
 function genEst(d){
-  let exact, text, approx;
+  let exact, text, approx, tpl;
   if(Math.random() < 0.6){
     const N = ri(d===0?40:80, d===2?950:600)*1000 + ri(0,999);
     const r = ri(3,12) + (d===2 ? pick([0,0.25,0.5,0.75]) : 0);
     exact = N*r/100;
     text = `${pctStr(r)} of ${fmt(N)}`;
     approx = `round: ~${fmt(round2sig(N))} × ${pctStr(r)}`;
+    tpl = "estPct";
   } else {
     const N = ri(60,900)*1000 + ri(0,999);
     const dsr = pick([12, 24, 26, 52]);
     exact = N/dsr;
     text = `${fmt(N)} ÷ ${dsr}`;
     approx = `round: ~${fmt(round2sig(N))} ÷ ${dsr}`;
+    tpl = "estDiv";
   }
   const ans = round2sig(exact);
   const dst = shuffle([ round2sig(exact*pick([0.55,0.65])),
                         round2sig(exact*pick([1.4,1.6])),
                         round2sig(exact*pick([0.1,10])),
                         round2sig(exact*1.25), round2sig(exact*0.8) ]);
-  return { kind:"mc", hint:"≈ pick the closest", text, options: mcInt(ans, dst),
+  return { kind:"mc", tpl, answer:ans, unit:"", hint:"≈ pick the closest", text, options: mcInt(ans, dst),
            how: `${approx} ≈ ${fmt(ans)}` };
 }
 
@@ -341,12 +389,12 @@ function genDrill(d){
     const how = d===0 ? `times tables: ${a} × ${b} = ${ans}`
               : d===1 ? `split it: ${tens} × ${b} = ${tens*b}, ${a-tens} × ${b} = ${(a-tens)*b} → ${fmt(ans)}`
               : `split it: ${a} × 10 = ${a*10}, ${a} × ${b-10} = ${a*(b-10)} → ${fmt(ans)}`;
-    return { kind:"mc", hint:"pick one", text:`${a} × ${b}`,
+    return { kind:"mc", tpl:"mult", answer:ans, unit:"", hint:"pick one", text:`${a} × ${b}`,
              options: mcInt(ans, shuffle([(a+1)*b, (a-1)*b, a*(b+1), a*(b-1), ans+10, ans-10])), how };
   }
   const dv = ri(3,12);
   const q = d===0 ? ri(3,12) : d===1 ? ri(12,99) : ri(25,199);
-  return { kind:"mc", hint:"pick one", text:`${fmt(q*dv)} ÷ ${dv}`,
+  return { kind:"mc", tpl:"divExact", answer:q, unit:"", hint:"pick one", text:`${fmt(q*dv)} ÷ ${dv}`,
            options: mcInt(q, shuffle([q+1, q-1, q+2, q-2, q+10, q-10])), how: divHow(dv, q) };
 }
 
@@ -360,7 +408,7 @@ function genHL(d){
     let X = Math.round(r + off);
     if(Math.abs(r - X) < 0.8) X += (off > 0 ? 1 : -1);
     X = Math.max(5, Math.min(70, X));
-    return { kind:"hl", hint:"snap judgment", text:`${fmt(A)} ÷ ${fmt(B)} — above or below ${X}%?`,
+    return { kind:"hl", tpl:"hlRatio", hint:"snap judgment", text:`${fmt(A)} ÷ ${fmt(B)} — above or below ${X}%?`,
              answer: r > X ? "above" : "below",
              how: `10% of ${fmt(B)} is ${fmt(B/10)} → ${X}% ≈ ${fmt(Math.round(B*X/100))}, and ${fmt(A)} is ${r > X ? "more" : "less"}` };
   }
@@ -370,7 +418,7 @@ function genHL(d){
   const mult = d===2 ? pick([0.9,0.94,1.06,1.1]) : pick([0.8,0.87,1.15,1.25]);
   let T = round2sig(truth*mult);
   if(T === truth) T = Math.round(truth*mult);
-  return { kind:"hl", hint:"snap judgment", text:`${X}% of ${fmt(N)} — above or below ${fmt(T)}?`,
+  return { kind:"hl", tpl:"hlPct", hint:"snap judgment", text:`${X}% of ${fmt(N)} — above or below ${fmt(T)}?`,
            answer: truth > T ? "above" : "below",
            how: `1% of ${fmt(N)} is ${fmt(N/100)} → ${X}% = ${fmt(truth)}, vs ${fmt(T)}` };
 }
@@ -381,6 +429,43 @@ function genQuestion(mode, d){
   const q = GENS[m](d);
   q.mode = m;
   return q;
+}
+
+/* ---------------- technique of the day ----------------
+   One card per day before the first sprint; that day's sprints
+   lean toward questions the technique applies to. */
+const TECHS = [
+  { mode:"pct", tpl:"pctOf", title:"The 1% anchor",
+    body:"To take any percent, find 1% first: drop two zeros. 6% of 240,000 → 1% is 2,400 → ×6 = 14,400. Every percent question is just 1% times something." },
+  { mode:"div", tpl:"div12", title:"÷12 = ÷4, then ÷3",
+    body:"Annual to monthly: divide by 4, then by 3. 78,000 ÷ 4 = 19,500 → ÷3 = 6,500. Each step is easy — the combo only feels hard until it doesn't." },
+  { mode:"drill", tpl:"mult", title:"Split multiplication",
+    body:"Break one factor at the tens and work left to right: 63 × 7 = 60×7 + 3×7 = 420 + 21 = 441. Big part first, then the small correction." },
+  { mode:"div", tpl:"ratioPct", title:"Ratios via 1%",
+    body:"What percent is 4,200 of 12,000? Find 1% of the bottom (120), then count how many times it fits the top: 4,200 ÷ 120 = 35%." },
+  { mode:"pct", tpl:"pctOf", title:"Halve your way there",
+    body:"5% is half of 10%. 2.5% is half again. 6.5% is 6% plus half a percent. Chain halves and you rarely need hard multiplication." },
+  { mode:"hl", tpl:"hlRatio", title:"Benchmark fractions",
+    body:"Memorize the anchors: 1/4 = 25%, 1/3 ≈ 33%, 3/8 = 37.5%, 1/2 = 50%. Most above-or-below calls are just \"which anchor is this near?\"" },
+];
+function todaysTech(){ return TECHS[Math.floor(Date.now()/86400000) % TECHS.length]; }
+
+/* Exact-calculation questions render as typed input part of the time —
+   producing the number is the work skill; recognition alone plateaus. */
+const TYPABLE = new Set(["pctOf","pctWhat","div12","ratioPct","divExact","mult"]);
+function decorate(q){
+  q.asTyped = q.kind === "mc" && TYPABLE.has(q.tpl) && Math.random() < 0.35;
+  return q;
+}
+function nextGenerated(){
+  const tech = todaysTech();
+  if((G.mode === "mix" || G.mode === tech.mode) && Math.random() < 0.4){
+    for(let t = 0; t < 12; t++){
+      const q = genQuestion(tech.mode, difficulty);
+      if(q.tpl === tech.tpl) return q;
+    }
+  }
+  return genQuestion(G.mode, difficulty);
 }
 
 /* ---------------- miss queue ----------------
@@ -395,8 +480,8 @@ function queueMiss(q){
   const list = loadMissQ();
   const i = list.findIndex(e => e.q.text === q.text);
   if(i >= 0) list[i].need = 2;
-  else list.push({ q: { kind:q.kind, mode:q.mode, text:q.text, hint:q.hint,
-                        options:q.options, answer:q.answer, how:q.how }, need: 2 });
+  else list.push({ q: { kind:q.kind, mode:q.mode, tpl:q.tpl, text:q.text, hint:q.hint,
+                        options:q.options, answer:q.answer, unit:q.unit, how:q.how }, need: 2 });
   saveMissQ(list);
 }
 function clearMissProgress(q, ok){
@@ -430,12 +515,17 @@ function dayKey(offset){
   d.setDate(d.getDate() - (offset || 0));
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
-function recordAnswer(mode, ok, ms){
+function recordAnswer(mode, tpl, ok, ms){
   const s = loadStats();
   const k = dayKey();
   s[k] = s[k] || { sprints:0, m:{} };
   const m = s[k].m[mode] = s[k].m[mode] || { n:0, ok:0, ms:0 };
   m.n++; if(ok) m.ok++; m.ms += ms;
+  if(tpl){
+    s[k].t = s[k].t || {};
+    const t = s[k].t[tpl] = s[k].t[tpl] || { n:0, ok:0, ms:0 };
+    t.n++; if(ok) t.ok++; t.ms += ms;
+  }
   saveStats(s);
 }
 function recordSprint(){
@@ -495,8 +585,44 @@ function renderStats(){
     row.querySelector(".tr").textContent = trend;
     table.appendChild(row);
   }
+  renderWeakSpots(s);
   const q = loadMissQ().length;
   $("statsReview").textContent = q ? `${q} missed question${q>1?"s":""} queued for review` : "";
+}
+
+const TPL_NAMES = {
+  pctOf:"% of a number", pctWhat:"what % is X of Y", div12:"annual → monthly (÷12)",
+  ratioPct:"ratio as a percent", divExact:"clean division", mult:"multiplication",
+  estPct:"estimating percents", estDiv:"estimating division",
+  hlRatio:"ratio above/below", hlPct:"percent above/below",
+};
+
+function renderWeakSpots(s){
+  const agg = {};
+  for(const k of Object.keys(s)){
+    const day = s[k].t || {};
+    for(const tpl of Object.keys(day)){
+      const a = agg[tpl] = agg[tpl] || { n:0, ok:0, ms:0 };
+      a.n += day[tpl].n; a.ok += day[tpl].ok; a.ms += day[tpl].ms;
+    }
+  }
+  const weak = Object.keys(agg)
+    .filter(tpl => agg[tpl].n >= 6 && agg[tpl].ok/agg[tpl].n < 0.9)
+    .sort((x,y) => agg[x].ok/agg[x].n - agg[y].ok/agg[y].n)
+    .slice(0,3);
+  const wrap = $("weakWrap"), list = $("weakList");
+  list.innerHTML = "";
+  wrap.style.display = weak.length ? "" : "none";
+  for(const tpl of weak){
+    const a = agg[tpl];
+    const row = document.createElement("div");
+    row.className = "weak-row";
+    row.innerHTML = `<span class="wname"></span><span class="wv acc"></span><span class="wv spd"></span>`;
+    row.querySelector(".wname").textContent = TPL_NAMES[tpl] || tpl;
+    row.querySelector(".acc").textContent = Math.round(a.ok/a.n*100) + "%";
+    row.querySelector(".spd").textContent = (a.ms/a.n/1000).toFixed(1) + "s";
+    list.appendChild(row);
+  }
 }
 
 /* ---------------- game state ---------------- */
@@ -523,7 +649,20 @@ function refreshHome(){
   $("reviewNote").textContent = q ? `🔁 ${q} missed question${q>1?"s":""} will resurface in your sprints` : "";
 }
 
+let pendingMode = null;
 function startGame(mode){
+  if(localStorage.getItem("nr:techShown") !== dayKey()){
+    pendingMode = mode;
+    const t = todaysTech();
+    $("techTitle").textContent = t.title;
+    $("techBody").textContent = t.body;
+    show("tech");
+    return;
+  }
+  beginSprint(mode);
+}
+
+function beginSprint(mode){
   if(G && G.timer) clearInterval(G.timer);
   G = { mode, score:0, correct:0, total:0, streak:0, bestStreak:0, served:new Set(),
         missed:[], endAt: Date.now() + ROUND_SECS*1000, locked:false, q:null };
@@ -550,7 +689,8 @@ function tick(){
 
 function nextQuestion(){
   G.locked = false;
-  G.q = pickReview() || genQuestion(G.mode, difficulty);
+  G.q = decorate(pickReview() || nextGenerated());
+  G.buf = "";
   G.qStart = Date.now();
   $("qhint").textContent = (G.q.review ? "🔁 review · " : "") + (G.q.hint || "");
   const qt = $("qtext");
@@ -566,7 +706,24 @@ function renderAnswerArea(){
   const area = $("answerArea");
   area.innerHTML = "";
   const q = G.q;
-  if(q.kind === "mc"){
+  if(q.asTyped){
+    const disp = document.createElement("div");
+    disp.className = "typed-display";
+    disp.id = "typedDisp";
+    disp.innerHTML = '<span class="cursor">_</span>';
+    const pad = document.createElement("div");
+    pad.className = "pad";
+    for(const k of ["7","8","9","4","5","6","1","2","3","⌫","0","✓"]){
+      const b = document.createElement("button");
+      b.textContent = k;
+      if(k === "✓") b.className = "go";
+      if(k === "⌫") b.className = "del";
+      b.addEventListener("pointerdown", e => { e.preventDefault(); padPress(k); });
+      pad.appendChild(b);
+    }
+    area.appendChild(disp);
+    area.appendChild(pad);
+  } else if(q.kind === "mc"){
     const mc = document.createElement("div");
     mc.className = "mc";
     q.options.forEach((o,i) => {
@@ -588,6 +745,20 @@ function renderAnswerArea(){
     hl.appendChild(up); hl.appendChild(dn);
     area.appendChild(hl);
   }
+}
+
+function padPress(k){
+  if(G.locked) return;
+  if(k === "⌫") G.buf = G.buf.slice(0,-1);
+  else if(k === "✓"){
+    if(!G.buf) return;
+    const val = parseInt(G.buf, 10);
+    grade(val === G.q.answer, fmt(val) + (G.q.unit || ""), fmt(G.q.answer) + (G.q.unit || ""));
+    return;
+  }
+  else if(G.buf.length < 9) G.buf += k;
+  const d = $("typedDisp");
+  if(d) d.innerHTML = G.buf ? fmt(parseInt(G.buf,10)) + (G.q.unit || "") : '<span class="cursor">_</span>';
 }
 
 function answerMC(i, btn){
@@ -614,7 +785,7 @@ function grade(ok, given, correctLabel){
   G.locked = true;
   G.total++;
   const ms = Date.now() - G.qStart;
-  recordAnswer(G.q.mode, ok, ms);
+  recordAnswer(G.q.mode, G.q.tpl, ok, ms);
   const fb = $("feedback");
   if(ok){
     // credit the miss queue: served reviews, and natural re-asks not missed this sprint
@@ -650,7 +821,7 @@ $("skipBtn").addEventListener("click", () => {
   G.streak = 0;
   $("streakLbl").textContent = "";
   const correctLabel = G.q.kind === "mc" ? G.q.options.find(x => x.correct).label : G.q.answer;
-  recordAnswer(G.q.mode, false, Date.now() - G.qStart);
+  recordAnswer(G.q.mode, G.q.tpl, false, Date.now() - G.qStart);
   queueMiss(G.q);
   G.served.add(G.q.text);
   G.missed.push({ text: G.q.text, given: "skipped", correct: correctLabel, how: G.q.how });
@@ -724,11 +895,20 @@ $("btnHome").addEventListener("click", () => { refreshHome(); show("home"); });
 $("btnAgain").addEventListener("click", () => startGame(G.mode));
 $("statsBtn").addEventListener("click", () => { renderStats(); show("stats"); });
 $("statsBack").addEventListener("click", () => { refreshHome(); show("home"); });
+$("techStart").addEventListener("click", () => {
+  localStorage.setItem("nr:techShown", dayKey());
+  beginSprint(pendingMode);
+});
+$("techBack").addEventListener("click", () => { refreshHome(); show("home"); });
 
 // physical keyboard support (nice on desktop testing)
 document.addEventListener("keydown", e => {
   if(!G || !$("game").classList.contains("active") || !G.q) return;
-  if(G.q.kind === "hl"){
+  if(G.q.asTyped){
+    if(/^[0-9]$/.test(e.key)) padPress(e.key);
+    else if(e.key === "Backspace") padPress("⌫");
+    else if(e.key === "Enter") padPress("✓");
+  } else if(G.q.kind === "hl"){
     if(e.key === "ArrowUp") answerHL("above");
     else if(e.key === "ArrowDown") answerHL("below");
   } else if(G.q.kind === "mc" && /^[1-4]$/.test(e.key)){
